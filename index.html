@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Dünya ve Ay</title>
+    <style>
+        /* Temel stil ayarları */
+        body { margin: 0; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <!-- 3D sahneyi içeren canvas elementi -->
+    <canvas id="canvas"></canvas>
+
+    <!-- Three.js kütüphanesini eklemek için script etiketi -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // 3D sahne, kamera, ve renderlayıcı değişkenleri
+        var camera, scene, renderer;
+        // Fare etkileşimini takip etmek için kullanılan değişkenler
+        var mouseDown = false;
+        var lastMouseX = false;
+        var lastMouseY = false;
+        // Kameranın dönmesini kontrol etmek için kullanılan değişken
+        var stopRotation = false;
+
+        // İlk başlatma işlemleri
+        init();
+        animate();
+
+        function init() {
+            // Three.js renderlayıcı oluştur
+            renderer = new THREE.WebGLRenderer({ canvas: document.querySelector("#canvas") });
+
+            // Perspektif kamera oluştur
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.z = 30;
+
+            // 3D sahne oluştur
+            scene = new THREE.Scene();
+
+            // Dünya yüzeyi
+            var earthGeometry = new THREE.SphereGeometry(10, 100, 100);
+            var earthMaterial = new THREE.MeshPhongMaterial();
+            var earthTextureLoader = new THREE.TextureLoader();
+            earthMaterial.map = earthTextureLoader.load('http://s3-us-west-2.amazonaws.com/s.cdpn.io/1206469/earthmap1k.jpg');
+            var earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
+            scene.add(earthMesh);
+
+            // Ay
+            var moonGeometry = new THREE.SphereGeometry(2, 100, 100);
+            var moonMaterial = new THREE.MeshPhongMaterial();
+            var moonTextureLoader = new THREE.TextureLoader();
+            moonMaterial.map = moonTextureLoader.load('https://threejs.org/examples/textures/planets/moon_1024.jpg');
+            var moonMesh = new THREE.Mesh(moonGeometry, moonMaterial);
+            moonMesh.position.set(20, 0, 0);
+            moonMesh.rotation.y += 0.5;
+            scene.add(moonMesh);
+
+            // Aydınlatma eklemek
+            var light1 = new THREE.AmbientLight(0xffffff);
+            scene.add(light1);
+
+            // Yıldızları oluştur
+            var starGeometry = new THREE.BufferGeometry();
+            var starMaterial = new THREE.PointsMaterial({ color: 0xffffff });
+
+            var starVertices = [];
+            for (let i = 0; i < 1000; i++) {
+                const x = (Math.random() - 0.5) * 1250;
+                const y = (Math.random() - 0.5) * 1250;
+                const z = (Math.random() - 0.5) * 1250;
+                starVertices.push(x, y, z);
+            }
+
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            var starsMesh = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starsMesh);
+        }
+
+        // Fare etkileşimleri için olay dinleyicileri
+        window.addEventListener('mousedown', function (event) {
+            mouseDown = true;
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            stopRotation = !stopRotation; // Döndürmeyi durdur veya devam ettir
+        });
+
+        window.addEventListener('mousemove', function (event) {
+            if (!mouseDown) return;
+            var deltaX = event.clientX - lastMouseX;
+            var deltaY = event.clientY - lastMouseY;
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            stopRotation = !stopRotation; // Döndürmeyi durdur veya devam ettir
+
+            scene.rotation.y += deltaX * 0.0005;
+            scene.rotation.x += deltaY * 0.0005;
+        });
+
+        window.addEventListener('mouseup', function () {
+            mouseDown = false;
+        });
+
+        function animate() {
+            // Animasyon döngüsünü başlat
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+
+            // Kameranın dönüşünü kontrol et
+            if (!stopRotation) {
+                if (scene.rotation.y > 0 && scene.rotation.y > scene.rotation.x) {
+                    scene.rotation.y += 0.005;
+                } else if (scene.rotation.y <= 0 && scene.rotation.y < scene.rotation.x) {
+                    scene.rotation.y -= 0.005;
+                } else if (scene.rotation.x > 0 && scene.rotation.x > scene.rotation.y) {
+                    scene.rotation.x += 0.005;
+                } else if (scene.rotation.x <= 0 && scene.rotation.x < scene.rotation.y) {
+                    scene.rotation.x -= 0.005;
+                }
+            }
+        }
+
+        // Pencere boyutu değiştiğinde kamera ve renderlayıcıyı güncelle
+        window.addEventListener('resize', onWindowResize, false);
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
